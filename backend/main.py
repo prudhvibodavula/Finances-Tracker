@@ -1,75 +1,60 @@
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
-import datetime
+# backend/main.py
 
+from fastapi import FastAPI, Depends # Added Depends
+from sqlalchemy.orm import Session # Added Session
 
-# Create an instance of the FastAPI class
+# Updated imports to use new modules
+from . import crud, models, schemas 
+from .database import engine, get_db # Added get_db
+
+# --- Database Table Creation ---
+# This line should still be here to ensure tables are created on startup
+models.Base.metadata.create_all(bind=engine)
+
+# --- FastAPI App Instance ---
 app = FastAPI()
-# --- Temporary In-Memory Storage (replace with database later) ---
-# This is just for demonstration purposes. Data will be lost when the server restarts.
-temp_loans_db = {} # Dictionary to store loans, keyed by loan ID
-loan_id_counter = 0 # Simple counter to generate unique IDs
-# Define a route for the root URL ("/")
-
-
-
-class LoanBase(BaseModel):
-    # Define a Pydantic model for the request body
-    borrower_name: str = Field(..., example="John Doe")
-    amount: float = Field(..., gt=0, example=1500.50) # gt = greater than
-    interest_rate: float = Field(..., ge=0, example=4.75) # ge = greater than or equal to
-    time_period_months: int = Field(..., gt=0, example=12) # Assuming term is in months
-
-class LoanCreate(LoanBase):
-    pass
-
-class Loan(LoanBase):
-    id : int
-    created_at: datetime.datetime
-
-
 
 # --- API Endpoints ---
 
-@app.post("/loans/", response_model=Loan, status_code=201) # status_code=201 indicates resource created
-async def create_loan(loan_data: LoanCreate):
+@app.post("/loans/", response_model=schemas.Loan, status_code=201)
+async def create_loan_endpoint( # Renamed slightly to avoid conflict with crud function
+    loan_data: schemas.LoanCreate, # Use schema for request body
+    db: Session = Depends(get_db) # Inject DB session
+):
     """
-    Creates a new loan entry.
-    Receives loan details in the request body, validates them using LoanCreate,
-    assigns a unique ID and timestamp, stores it, and returns the created loan.
+    Creates a new loan entry by calling the CRUD function.
     """
-    global loan_id_counter, temp_loans_db # Declare we are modifying global variables
+    # Call the CRUD function to handle database interaction
+    return crud.create_loan(db=db, loan=loan_data)
 
-    loan_id_counter += 1 # Increment the ID counter
-
-    # Create a complete Loan object including generated fields
-    new_loan = Loan(
-        id=loan_id_counter,
-        created_at=datetime.datetime.now(datetime.timezone.utc), # Use timezone-aware UTC time
-        # Unpack the validated data from loan_data (which matches LoanBase fields)
-        # Use model_dump() for Pydantic v2+
-        **loan_data.model_dump() 
-    )
-
-    # Store the new loan in our temporary dictionary
-    temp_loans_db[new_loan.id] = new_loan
-
-    # Return the newly created loan object (FastAPI validates it against response_model=Loan)
-    return new_loan
-
-@app.get("/loans/", response_model=list[Loan])
-async def get_loans():
+@app.get("/loans/", response_model=list[schemas.Loan])
+async def get_loans_endpoint( # Renamed slightly
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db) # Inject DB session
+):
     """
-    Retrieves a list of all stored loan entries.
+    Retrieves a list of loans using the CRUD function with pagination.
     """
-    return list(temp_loans_db.values()) # Return the dictionary values as a list
+    # Call the CRUD function to get loans
+    loans = crud.get_loans(db=db, skip=skip, limit=limit)
+    return loans
 
 @app.get("/")
 async def read_root():
     return {"message": "Hello from the Interest Calculator Backend!"}
 
-# Define another example route
-@app.get("/items/{item_id}")
-async def read_item(item_id: int, q: str | None = None):
-    # This route takes a path parameter 'item_id' and an optional query parameter 'q'
-    return {"item_id": item_id, "q": q}
+# Optional: Add an endpoint to get a single loan by ID
+@app.get("/loans/{loan_id}", response_model=schemas.Loan)
+async def get_loan_endpoint(loan_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieves a specific loan by its ID using the CRUD function.
+    """
+    db_loan = crud.get_loan(db=db, loan_id=loan_id)
+    if db_loan is None:
+        from fastapi import HTTPException # Import HTTPException here
+        raise HTTPException(status_code=404, detail="Loan not found")
+    return db_loan
+
+# (Keep the /items/{item_id} example endpoint or remove it)
+# ...

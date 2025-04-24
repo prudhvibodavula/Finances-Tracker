@@ -3,12 +3,20 @@ backend/venv/
 
 # Python cache files
 backend/__pycache__/
+__pycache__/
 *.pyc
 
-# Environment variables (good practice to add now)
-.env
-*.env
+# Database files (IMPORTANT!)
+backend/loans.db
+backend/loans.db-* # Ignores journal/wal files too
+
+# Environment variables
+backend/.env
 
 # Operating System files
 .DS_Store
 Thumbs.db
+
+# Add frontend ignores later, e.g.:
+# frontend/node_modules/
+# frontend/build/
