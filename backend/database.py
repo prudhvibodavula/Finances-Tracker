@@ -14,7 +14,7 @@ load_dotenv()
 # Get the database URL from the environment variable "DATABASE_URL"
 # If it's not set, default to a local SQLite database file named "loans.db"
 # in the same directory as this script (or wherever the app runs from).
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./loans.db")
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///backend/loans.db")
 # Example for PostgreSQL later: DATABASE_URL="postgresql://user:password@host:port/database"
 
 # --- SQLAlchemy Engine Setup ---
