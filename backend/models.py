@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, func
+from sqlalchemy import Column, Integer, String, Float, DateTime, func, Boolean
+from .database import Base
 from sqlalchemy.sql import func # Need this for server_default timestamp
 
 # Import the Base class from database.py (using relative import)
@@ -31,3 +32,22 @@ class Loan(Base):
     # Add relationship to User model later if needed
     # owner_id = Column(Integer, ForeignKey("users.id")) 
     # owner = relationship("User", back_populates="loans")
+
+
+    # ... (Loan class definition) ...
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Email used for login, must be unique
+    email = Column(String, unique=True, index=True, nullable=False)
+    # Hashed password storage (never plain text)
+    hashed_password = Column(String, nullable=False)
+    # Flag to easily disable accounts if needed later
+    is_active = Column(Boolean, default=True)
+    # Timestamp for user creation
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationship placeholder (add later)
+    # loans = relationship("Loan", back_populates="owner")

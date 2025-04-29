@@ -1,7 +1,7 @@
 # backend/schemas.py
 
 # Add computed_field to imports
-from pydantic import BaseModel, Field, ConfigDict, computed_field 
+from pydantic import BaseModel, Field, ConfigDict, computed_field , EmailStr
 import datetime
 
 # --- Loan Schemas ---
@@ -32,3 +32,32 @@ class Loan(LoanBase):
 
     # --- ORM Mode Configuration ---
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- User Schemas ---
+
+class UserBase(BaseModel):
+    # Common base field: email
+    # EmailStr type provides automatic email format validation
+    email: EmailStr 
+
+class UserCreate(UserBase):
+    # Schema specifically for user creation (signup)
+    # Includes the plain text password provided by the user
+    password: str 
+    # Note: We receive the plain password here, hash it in the backend (crud.py), 
+    # and store the HASH in the database (models.User.hashed_password).
+
+class User(UserBase):
+    # Schema for data returned by the API when representing a user
+    # Inherits email from UserBase
+    id: int
+    is_active: bool
+    created_at: datetime.datetime
+
+    # --- ORM Mode Configuration ---
+    # Allows creating this schema from the SQLAlchemy User model object
+    model_config = ConfigDict(from_attributes=True)
+
+    # Note: We intentionally DO NOT include 'password' or 'hashed_password' here
+    # to avoid ever sending password info back out through the API.
