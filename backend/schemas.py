@@ -61,3 +61,13 @@ class User(UserBase):
 
     # Note: We intentionally DO NOT include 'password' or 'hashed_password' here
     # to avoid ever sending password info back out through the API.
+
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    # Schema for data held within the token (optional but good practice)
+    email: str | None = None
